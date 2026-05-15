@@ -3,7 +3,9 @@
  */
 public object FfiConverterUShort: FfiConverter<UShort, Short> {
     override fun lift(value: Short): UShort {
-        return value.toUShort()
+        // See FfiConverterShort.lift — canonicalize to handle armeabi-v7a
+        // AOT JNI narrowing bug.
+        return (value.toInt() and 0xFFFF).toShort().toUShort()
     }
 
     override fun read(buf: ByteBuffer): UShort {
