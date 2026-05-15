@@ -120,7 +120,14 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     {%- for (name, expected_checksum) in ci.iter_checksums() %}
-    if (lib.{{ name }}() != {{ expected_checksum }}.toShort()) {
+    // Compare against the unsigned 16-bit value, not the signed Short. On
+    // armeabi-v7a, ART's AOT JNI bridge fails to perform the JVMS-mandated
+    // narrow-and-sign-extend of ()S return values, leaving the operand stack
+    // with the raw u16 (e.g. 0x0000D2FF = 54015) instead of the sign-extended
+    // Short (0xFFFFD2FF = -11521). Masking the low 16 bits and comparing as
+    // Int keeps the check correct in both AOT and interpreter/JIT modes. See
+    // https://github.com/jkmassel/uniffi-armv7-aot-checksum-bug
+    if ((lib.{{ name }}().toInt() and 0xFFFF) != {{ expected_checksum }}) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     {%- endfor %}
