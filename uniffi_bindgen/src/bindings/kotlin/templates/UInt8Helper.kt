@@ -3,7 +3,9 @@
  */
 public object FfiConverterUByte: FfiConverter<UByte, Byte> {
     override fun lift(value: Byte): UByte {
-        return value.toUByte()
+        // See FfiConverterByte.lift — canonicalize to handle armeabi-v7a
+        // AOT JNI narrowing bug.
+        return (value.toInt() and 0xFF).toByte().toUByte()
     }
 
     override fun read(buf: ByteBuffer): UByte {
